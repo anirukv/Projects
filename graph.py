@@ -3,7 +3,9 @@ from __future__ import annotations
 import hashlib
 import os
 import re
+import tempfile
 from collections import Counter
+from pathlib import Path
 from typing import Any, TypedDict
 
 import chromadb
@@ -15,7 +17,7 @@ from langgraph.graph import END, StateGraph
 
 load_dotenv()
 
-CHROMA_DB_DIR = "/chroma_db"
+CHROMA_DB_DIR = Path(os.getenv("CHROMA_DB_DIR", tempfile.gettempdir())) / "chroma_db"
 COLLECTION_NAME = "earnings_calls"
 GEMINI_CHAT_MODEL = "gemini-3.5-flash"
 COMPANY_ALIASES = {
@@ -62,6 +64,7 @@ def create_initial_state(user_email: str, allowed_companies: list[str], messages
 
 
 def _get_collection():
+    CHROMA_DB_DIR.mkdir(parents=True, exist_ok=True)
     client = chromadb.PersistentClient(path=str(CHROMA_DB_DIR))
     try:
         return client.get_collection(name=COLLECTION_NAME)

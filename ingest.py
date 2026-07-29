@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -19,7 +20,7 @@ load_dotenv()
 
 ROOT = Path(__file__).resolve().parent
 DOCS_DIR = ROOT / "docs"
-CHROMA_DB_DIR = "/chroma_db"
+CHROMA_DB_DIR = Path(os.getenv("CHROMA_DB_DIR", tempfile.gettempdir())) / "chroma_db"
 COLLECTION_NAME = "earnings_calls"
 EMBEDDING_MODEL = "gemini-embedding-2"
 COMPANY_ALIASES = {
@@ -112,6 +113,7 @@ def ingest_documents() -> int:
     if not documents:
         raise ValueError(f"No recognized company PDFs found in {DOCS_DIR}")
 
+    CHROMA_DB_DIR.mkdir(parents=True, exist_ok=True)
     client = chromadb.PersistentClient(path=str(CHROMA_DB_DIR))
     try:
         client.delete_collection(name=COLLECTION_NAME)
