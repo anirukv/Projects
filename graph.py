@@ -3,13 +3,13 @@ from __future__ import annotations
 import hashlib
 import os
 import re
-import tempfile
 from collections import Counter
 from pathlib import Path
 from typing import Any, TypedDict
 
 import chromadb
 from dotenv import load_dotenv
+from ingest import ingest_documents
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.checkpoint.memory import MemorySaver
@@ -17,7 +17,8 @@ from langgraph.graph import END, StateGraph
 
 load_dotenv()
 
-CHROMA_DB_DIR = Path(os.getenv("CHROMA_DB_DIR", tempfile.gettempdir())) / "chroma_db"
+ROOT = Path(__file__).resolve().parent
+CHROMA_DB_DIR = Path(os.getenv("CHROMA_DB_DIR", ROOT / "chroma_db"))
 COLLECTION_NAME = "earnings_calls"
 GEMINI_CHAT_MODEL = "gemini-3.5-flash"
 COMPANY_ALIASES = {
@@ -75,6 +76,16 @@ def _get_collection():
         try:
             _CHROMA_COLLECTION = _CHROMA_CLIENT.get_collection(name=COLLECTION_NAME)
         except Exception:
+            _CHROMA_COLLECTION = _CHROMA_CLIENT.get_or_create_collection(name=COLLECTION_NAME)
+
+        current_count = 0
+        try:
+            current_count = _CHROMA_COLLECTION.count()
+        except AttributeError:
+            current_count = len(_CHROMA_COLLECTION.get(include=["documents"]).get("documents", []))
+
+        if current_count == 0:
+            ingest_documents()
             _CHROMA_COLLECTION = _CHROMA_CLIENT.get_or_create_collection(name=COLLECTION_NAME)
     return _CHROMA_COLLECTION
 

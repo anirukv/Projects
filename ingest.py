@@ -20,7 +20,7 @@ load_dotenv()
 
 ROOT = Path(__file__).resolve().parent
 DOCS_DIR = ROOT / "docs"
-CHROMA_DB_DIR = Path(os.getenv("CHROMA_DB_DIR", tempfile.gettempdir())) / "chroma_db"
+CHROMA_DB_DIR = Path(os.getenv("CHROMA_DB_DIR", ROOT / "chroma_db"))
 COLLECTION_NAME = "earnings_calls"
 EMBEDDING_MODEL = "gemini-embedding-2"
 COMPANY_ALIASES = {
