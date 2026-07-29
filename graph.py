@@ -63,13 +63,20 @@ def create_initial_state(user_email: str, allowed_companies: list[str], messages
     }
 
 
+_CHROMA_CLIENT: chromadb.api.client.Client | None = None
+_CHROMA_COLLECTION: Any | None = None
+
+
 def _get_collection():
-    CHROMA_DB_DIR.mkdir(parents=True, exist_ok=True)
-    client = chromadb.PersistentClient(path=str(CHROMA_DB_DIR))
-    try:
-        return client.get_collection(name=COLLECTION_NAME)
-    except Exception:
-        return None
+    global _CHROMA_CLIENT, _CHROMA_COLLECTION
+    if _CHROMA_COLLECTION is None:
+        CHROMA_DB_DIR.mkdir(parents=True, exist_ok=True)
+        _CHROMA_CLIENT = chromadb.PersistentClient(path=str(CHROMA_DB_DIR))
+        try:
+            _CHROMA_COLLECTION = _CHROMA_CLIENT.get_collection(name=COLLECTION_NAME)
+        except Exception:
+            _CHROMA_COLLECTION = _CHROMA_CLIENT.get_or_create_collection(name=COLLECTION_NAME)
+    return _CHROMA_COLLECTION
 
 
 def _build_embedding(text: str, dimension: int = 512) -> list[float]:
