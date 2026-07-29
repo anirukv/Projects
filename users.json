@@ -1,0 +1,5 @@
+{
+  "alice@email.com": ["Google"],
+  "bob@email.com": ["Netflix", "Apple"],
+  "charlie@email.com": ["Meta", "Amazon"]
+}
