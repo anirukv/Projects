@@ -19,42 +19,54 @@ This project demonstrates a multi-user document search and conversational Q&A sy
 | Charlie | charlie@email.com | CompanyD, CompanyE |
 
 ## Setup
-
 1. Create and activate a virtual environment
 
 ```bash
-python -m venv venv
-venv\Scripts\activate
+python -m venv .venv
+# Windows
+.venv\Scripts\activate
+# macOS / Linux
+source .venv/bin/activate
 ```
 
 2. Install dependencies
 
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
-3. Set your Google API key
+3. Set your Google API key (Streamlit Cloud: add as a secret named `GOOGLE_API_KEY`)
 
-```bash
-set GOOGLE_API_KEY=your_key_here
+Locally, either export the env var or create a `.env` file containing:
+
+```dotenv
+GOOGLE_API_KEY=your_key_here
 ```
-
-You can also place the key in a .env file. The app fails clearly if the key is missing.
 
 ## Ingest the documents
 
-Place your PDFs in the company folders under documents/ and run:
+Place your PDFs in the `docs/` folder using filenames that map to company aliases (e.g. `google.pdf`, `netflix.pdf`). Then run:
 
 ```bash
 python ingest.py
 ```
 
-The ingestion script loads every PDF in the company subfolders, splits the text into chunks of about 1000 characters with 150-character overlap, tags each chunk with the company metadata, and stores the embeddings in the local Chroma database at /chroma_db.
+Notes:
+- The script splits PDFs into ~1000-character chunks and stores them in a local Chroma database under `chroma_db/` by default.
+- If your Google embedding quota is exceeded, the script falls back to a deterministic embedding function and still indexes documents (lower-quality embeddings).
+- The code now prefers the DuckDB+Parquet Chroma backend in cloud environments to avoid Rust binding lifecycle issues.
 
-## Run the app
+## Run the app (local)
 
 ```bash
-streamlit run app.py
+# Run Streamlit locally (port optional)
+python -m streamlit run app.py --server.headless true --server.port 8503
+```
+
+Smoke test (quick check without Streamlit UI):
+
+```bash
+python test_smoke.py
 ```
 
 ## Demo walkthrough
@@ -87,4 +99,17 @@ documents/
   CompanyC/
   CompanyD/
   CompanyE/
+
+## Streamlit Cloud deployment notes
+
+- In the Streamlit app deploy form use:
+  - **Main file path:** `app.py`
+  - **Run command:** `python -m streamlit run app.py --server.headless true --server.port $PORT`
+  - Add a secret named `GOOGLE_API_KEY` with your API key
+- If you prefer a persistent on-disk Chroma DB on the host, set the `CHROMA_DB_DIR` env var to a writable path; otherwise the app uses a project-local `chroma_db/` directory.
+
+## Troubleshooting
+
+- If you see errors from `chromadb` about Rust bindings on Streamlit Cloud, ensure `requirements.txt` includes `duckdb` and `pyarrow` so the DuckDB backend is available. We default to the DuckDB+Parquet implementation to avoid Rust lifecycle issues.
+- If ingestion fails due to Gemini embedding quota, re-run `python ingest.py` after quota refresh or rely on the deterministic fallback.
 ```
